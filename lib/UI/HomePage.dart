@@ -6,6 +6,9 @@ import 'package:fluttertoast/fluttertoast.dart';
 import 'package:geocoding/geocoding.dart';
 import 'package:geolocator/geolocator.dart';
 import 'package:http/http.dart' as http;
+import 'package:intl/intl.dart';
+import 'package:provider/provider.dart';
+import 'package:weather/API/weatherApiProvider.dart';
 
 import '../model/weatherModel.dart';
 
@@ -18,77 +21,19 @@ class HomePage extends StatefulWidget {
 
 class _HomePageState extends State<HomePage> {
   late Future<weatherModel?> _weatherFuture;
-  double latitude = 0.0;
-  double longitude = 0.0;
-  String currentAddress = '';
 
   @override
   void initState() {
     // TODO: implement initState
     super.initState();
-    _weatherFuture = fetchWeather();
-  }
-
-  Future<void> getCurrentLocation() async {
-    bool serviceEnabled;
-    LocationPermission permission;
-
-    serviceEnabled = await Geolocator.isLocationServiceEnabled();
-    if (!serviceEnabled) {
-      return;
-    }
-
-    permission = await Geolocator.checkPermission();
-    if (permission == LocationPermission.denied) {
-      permission = await Geolocator.requestPermission();
-      if (permission != LocationPermission.always) {
-        return;
-      }
-    }
-
-    Position position = await Geolocator.getCurrentPosition(
-      desiredAccuracy: LocationAccuracy.high,
+    // _weatherFuture = fetchWeather();
+    Future.microtask(
+      () =>
+          Provider.of<fetchWeatherProvider>(
+            context,
+            listen: false,
+          ).fetchWeather(),
     );
-    latitude = position.latitude;
-    longitude = position.longitude;
-
-    List<Placemark> placemarks = await placemarkFromCoordinates(
-      latitude,
-      longitude,
-    );
-    Placemark place = placemarks[0];
-
-    setState(() {
-      currentAddress =
-          '${place.subLocality}, ${place.locality}, ${place.country}';
-    });
-  }
-
-  Future<weatherModel?> fetchWeather() async {
-    await getCurrentLocation();
-    final apiKey = "daf6fa46d6b5f22440d691f09a6c3204";
-    final weatheruri =
-        "https://api.openweathermap.org/data/2.5/weather?lat=$latitude&lon=$longitude&appid=$apiKey&units=metric";
-
-    // log(longitude.toString() + "Lat: " + latitude.toString());
-    try {
-      final response = await http.get(
-        Uri.parse(weatheruri),
-        headers: ({
-          'Content-Type': 'application/json',
-          'Accept': 'application/json',
-        }),
-      );
-      if (response.statusCode == 200) {
-        final jsonData = jsonDecode(response.body);
-        return weatherModel.fromJson(jsonData);
-      } else {
-        Fluttertoast.showToast(msg: "Unable to fetch data");
-      }
-    } catch (e) {
-      Fluttertoast.showToast(msg: "Unable to fetch data");
-    }
-    return null;
   }
 
   @override
@@ -96,23 +41,35 @@ class _HomePageState extends State<HomePage> {
     return Scaffold(
       backgroundColor: Colors.blue[50],
       appBar: AppBar(title: Text("Weather"), centerTitle: true),
-      body: FutureBuilder<weatherModel?>(
-        future: _weatherFuture,
-        builder: (context, snapshots) {
-          if (snapshots.connectionState == ConnectionState.waiting) {
+      body: Consumer<fetchWeatherProvider>(
+        builder: (context, provider, child) {
+          if (provider.connectionState == ConnectionState.waiting) {
             return Center(child: CircularProgressIndicator());
           }
-          if (snapshots.hasError) {
+          if (provider.hasError) {
             return Center(child: Text("Unable to fetch data"));
           }
 
-          final weatherInfo = snapshots.data;
+          final weatherInfo = provider.weatherData;
+          // log(weatherInfo.toString());
+
           final iconWeathr = weatherInfo!.weather![0].icon;
 
           final iconUrl =
               "https://openweathermap.org/img/wn/${weatherInfo.weather![0].icon}@2x.png";
 
           final temp = weatherInfo.main!.temp!.toInt();
+          int? sunrise = weatherInfo.sys!.sunrise;
+          DateTime sunriseTime = DateTime.fromMillisecondsSinceEpoch(
+            sunrise! * 1000,
+          );
+          String formattedSunRise = DateFormat.jm().format(sunriseTime);
+
+          int sunset = weatherInfo.sys!.sunset!;
+          DateTime sunsetTime = DateTime.fromMillisecondsSinceEpoch(
+            sunset * 1000,
+          );
+          String formattedSunset = DateFormat.jm().format(sunsetTime);
 
           String getWeatherImg(int temp) {
             switch (temp) {
@@ -161,7 +118,7 @@ class _HomePageState extends State<HomePage> {
                             crossAxisAlignment: CrossAxisAlignment.start,
                             children: [
                               Text(
-                                currentAddress.split(",").first.trim(),
+                                weatherInfo.name!.split(",").first.trim(),
                                 style: TextStyle(
                                   fontSize: 25,
                                   fontFamily: "Poppins",
@@ -264,6 +221,74 @@ class _HomePageState extends State<HomePage> {
                               ),
                             ),
                           ],
+                        ),
+                      ),
+                      SizedBox(height: 40),
+                      Padding(
+                        padding: const EdgeInsets.symmetric(vertical: 70),
+                        child: Container(
+                          decoration: BoxDecoration(
+                            borderRadius: BorderRadius.circular(10),
+                            color: Colors.blue[200],
+                          ),
+                          height: 131,
+                          child: Row(
+                            children: [
+                              Padding(
+                                padding: const EdgeInsets.all(12.0),
+                                child: Column(
+                                  children: [
+                                    Icon(
+                                      Icons.wb_sunny_rounded,
+                                      size: 30,
+                                      color: Colors.white,
+                                    ),
+                                    Text("Sunrise",style: TextStyle(
+                                      fontSize: 15,
+                                      fontFamily: "Poppins",
+                                      color: Colors.white,
+                                    ),),
+                                    SizedBox(height: 20),
+                                    Text(
+                                      formattedSunRise,
+                                      style: TextStyle(
+                                        fontSize: 20,
+                                        fontFamily: "Poppins",
+                                        color: Colors.white,
+                                      ),
+                                    ),
+                                  ],
+                                ),
+                              ),
+                              Spacer(),
+                              Padding(
+                                padding: const EdgeInsets.all(12.0),
+                                child: Column(
+                                  children: [
+                                    Icon(
+                                      Icons.wb_twighlight,
+                                      size: 30,
+                                      color: Colors.white,
+                                    ),
+                                    Text("Sunset",style: TextStyle(
+                                      fontSize: 15,
+                                      fontFamily: "Poppins",
+                                      color: Colors.white,
+                                    ),),
+                                    SizedBox(height: 20),
+                                    Text(
+                                      formattedSunset,
+                                      style: TextStyle(
+                                        fontSize: 20,
+                                        fontFamily: "Poppins",
+                                        color: Colors.white,
+                                      ),
+                                    ),
+                                  ],
+                                ),
+                              ),
+                            ],
+                          ),
                         ),
                       ),
                     ],
