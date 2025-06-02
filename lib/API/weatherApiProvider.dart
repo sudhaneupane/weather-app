@@ -9,11 +9,8 @@ import 'package:http/http.dart' as http;
 import '../model/weatherModel.dart';
 
 class fetchWeatherProvider extends ChangeNotifier {
-  bool _connectionState = false;
   bool _isLoading = false;
   weatherModel? _weatherData;
-
-  bool get connectionState => _connectionState;
 
   bool get isLoading => _isLoading;
   weatherModel? get weatherData => _weatherData;
@@ -31,14 +28,14 @@ class fetchWeatherProvider extends ChangeNotifier {
 
     serviceEnabled = await Geolocator.isLocationServiceEnabled();
     if (!serviceEnabled) {
-      return;
+    //  return;
     }
 
     permission = await Geolocator.checkPermission();
     if (permission == LocationPermission.denied) {
       permission = await Geolocator.requestPermission();
       if (permission != LocationPermission.always) {
-        return;
+      //  return;
       }
     }
 
@@ -58,7 +55,7 @@ class fetchWeatherProvider extends ChangeNotifier {
         '${place.subLocality}, ${place.locality}, ${place.country}';
   }
 
-  Future<weatherModel?> fetchWeather() async {
+  Future<void> fetchWeather() async {
     _isLoading = true;
     notifyListeners();
 
@@ -90,6 +87,5 @@ class fetchWeatherProvider extends ChangeNotifier {
     }
     _isLoading=false;
     notifyListeners();
-    return null;
   }
 }
