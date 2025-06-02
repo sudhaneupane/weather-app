@@ -31,26 +31,25 @@ class _HomePageState extends State<HomePage> {
 
   @override
   Widget build(BuildContext context) {
-    return Scaffold(
-      backgroundColor: Colors.blue[50],
-      body: CustomRefreshIndicator(
-        onRefresh: handleRefresh,
-        builder: (context, child, controller) {
-          return Stack(
-            alignment: Alignment.topCenter,
-            children: [
-              if (!controller.isIdle)
-                Positioned(
-                  top: 30 * controller.value,
-                  child: Icon(Icons.refresh, size: 30),
-                ),
-              child,
-            ],
-          );
-        },
-        child: SingleChildScrollView(
-          child: Padding(
-            padding: const EdgeInsets.symmetric(vertical: 65),
+    return SafeArea(
+      child: Scaffold(
+        backgroundColor: Colors.blue[50],
+        body: CustomRefreshIndicator(
+          onRefresh: handleRefresh,
+          builder: (context, child, controller) {
+            return Stack(
+              alignment: Alignment.topCenter,
+              children: [
+                if (!controller.isIdle)
+                  Positioned(
+                    top: 30 * controller.value,
+                    child: Icon(Icons.refresh, size: 30),
+                  ),
+                child,
+              ],
+            );
+          },
+          child: SingleChildScrollView(
             child: Consumer<fetchWeatherProvider>(
               builder: (context, provider, child) {
                 if (provider.isLoading == true) {
@@ -136,10 +135,11 @@ class _HomePageState extends State<HomePage> {
                                   crossAxisAlignment: CrossAxisAlignment.start,
                                   children: [
                                     Text(
-                                      provider.currentAddress
-                                          .split(",")
-                                          .first
-                                          .trim(),
+                                      // provider.currentAddress
+                                      //     .split(",")
+                                      //     .first
+                                      //     .trim(),
+                                      weatherInfo.name.toString(),
                                       style: TextStyle(
                                         fontSize: 25,
                                         fontFamily: "Poppins",
